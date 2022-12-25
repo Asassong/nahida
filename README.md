@@ -24,6 +24,9 @@ pip install matplotlib
 
 ### 2.下载嵌入式包
 
+https://www.aliyundrive.com/s/H92QJFwjcHN  提取码: cx88
+自解压包，因此后缀为exe。
+
 可能需要安装npcap
 
 ## 项目安全性
