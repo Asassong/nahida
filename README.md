@@ -22,7 +22,7 @@
 pip install matplotlib
 ```
 
-### 2.从release中下载
+### 2.下载嵌入式包
 
 可能需要安装npcap
 
