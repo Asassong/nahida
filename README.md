@@ -12,7 +12,7 @@
 
 ## 使用
 
-### 1.自行安装
+### 方式1.自行安装
 
 (1)参见[scapy](https://github.com/secdev/scapy)安装scapy
 
@@ -22,7 +22,7 @@
 pip install matplotlib
 ```
 
-### 2.下载嵌入式包
+### 方式2.下载嵌入式包
 
 https://www.aliyundrive.com/s/H92QJFwjcHN  提取码: cx88
 
@@ -43,6 +43,8 @@ https://www.aliyundrive.com/s/H92QJFwjcHN  提取码: cx88
 proto混淆，等待项目`Iridium-py`更新。
 
 ## 备注
+
+请在网络良好条件下使用。
 
 最近较忙，若使用出现问题希望直接提Pull request, 提issue当然也可以。
 
