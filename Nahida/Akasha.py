@@ -108,23 +108,24 @@ def deal_energy(energy_dict):
     sorted_energy0 = combat_start_time
     avatar_energy_tuple = {}
     for avatar in list(max_energy.keys()):
-        energy_time_dict = energy_dict[avatar]
-        sorted_energy = sorted(energy_time_dict)
-        sorted_energy_end = sorted_energy[-1]
-        avatar_max_energy = max_energy[avatar]
-        time_ = []
-        energy = []
-        if sorted_energy != sorted_energy[0]:
-            time_.append(0)
-            energy.append(energy_time_dict[sorted_energy[0]])
-        for i, energy_ in enumerate(energy_time_dict):
-            time_.append(round((energy_ - sorted_energy0)/1000, 2))
-            energy.append(energy_time_dict[energy_])
-            if energy_time_dict[energy_] == avatar_max_energy:
-                if energy_ != sorted_energy_end:
-                    time_.append(round((sorted_energy[i + 1] - sorted_energy0 - 10)/1000, 2))
-                    energy.append(avatar_max_energy)
-        avatar_energy_tuple.update({avatar: (time_, energy)})
+        if avatar in energy_dict:  # 当队伍中角色从没使用过元素爆发时，不绘制
+            energy_time_dict = energy_dict[avatar]
+            sorted_energy = sorted(energy_time_dict)
+            sorted_energy_end = sorted_energy[-1]
+            avatar_max_energy = max_energy[avatar]
+            time_ = []
+            energy = []
+            if sorted_energy != sorted_energy[0]:
+                time_.append(0)
+                energy.append(energy_time_dict[sorted_energy[0]])
+            for i, energy_ in enumerate(energy_time_dict):
+                time_.append(round((energy_ - sorted_energy0)/1000, 2))
+                energy.append(energy_time_dict[energy_])
+                if energy_time_dict[energy_] == avatar_max_energy:
+                    if energy_ != sorted_energy_end:
+                        time_.append(round((sorted_energy[i + 1] - sorted_energy0 - 10)/1000, 2))
+                        energy.append(avatar_max_energy)
+            avatar_energy_tuple.update({avatar: (time_, energy)})
     return avatar_energy_tuple
 
 
@@ -178,18 +179,30 @@ def draw(combat_duration):
     y_px = 800
     for avatar in avatar_obj_dict.values():
         avatar_name = avatar.avatar_name
-        hit_times = avatar_hit_times[avatar_name]
-        trigger_reaction_times = avatar_trigger_reaction_times[avatar_name]
-        crit_times = avatar_crit_times[avatar_name]
-        damage = avatar_damage_dict[avatar_name]
+        if avatar_name in avatar_hit_times:
+            hit_times = avatar_hit_times[avatar_name]
+        else:
+            hit_times = 0
+        if avatar_name in avatar_trigger_reaction_times:
+            trigger_reaction_times = avatar_trigger_reaction_times[avatar_name]
+        else:
+            trigger_reaction_times = 0
+        if avatar_name in avatar_crit_times:
+            crit_times = avatar_crit_times[avatar_name]
+        else:
+            crit_times = 0
+        if avatar_name in avatar_damage_dict:
+            damage = avatar_damage_dict[avatar_name]
+        else:
+            damage = 0
         painter.text((x_px, y_px), "%s" % avatar_name, font=fnt, fill=avatar_info_color)
         x_px += 140
-        painter.text((x_px, y_px), "%.2f%%" % (crit_times * 100 / hit_times), font=fnt, fill=avatar_info_color)
+        painter.text((x_px, y_px), "%.2f%%" % (crit_times * 100 / hit_times) if hit_times != 0 else "0", font=fnt, fill=avatar_info_color)
         x_px += 140
-        painter.text((x_px, y_px), "%.2f%%" % (trigger_reaction_times * 100 / hit_times), font=fnt,
+        painter.text((x_px, y_px), "%.2f%%" % (trigger_reaction_times * 100 / hit_times) if hit_times != 0 else "0", font=fnt,
                      fill=avatar_info_color)
         x_px += 140
-        painter.text((x_px, y_px), "%.2f%%" % (damage * 100 / total_damage), font=fnt, fill=avatar_info_color)
+        painter.text((x_px, y_px), "%.2f%%" % (damage * 100 / total_damage) if total_damage != 0 else "0", font=fnt, fill=avatar_info_color)
         x_px = 86
         y_px += 72
     matplotlib.use("TkAgg")
@@ -197,21 +210,25 @@ def draw(combat_duration):
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(6, 6))
     damage_time_from_0, matching_time_damage = cal_dps(time_damage_dict)
+    plt.title("DPS时序图")
     plt.plot(damage_time_from_0, matching_time_damage)
     fig.canvas.draw()
     pil_damage = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
     copy_img.paste(pil_damage, (770, 600))
     plt.clf()
     stamina_time_from_0, matching_time_stamina = deal_stamina(stamina_time_dict)
+    plt.title("体力时序图")
     plt.plot(stamina_time_from_0, matching_time_stamina)
     fig.canvas.draw()
     pil_stamina = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
     copy_img.paste(pil_stamina, (65, 1284))
     plt.clf()
     avatar_energy_time_map = deal_energy(avatar_energy_time_dict)
+    plt.title("能量时序图")
     for avatar in avatar_obj_dict.values():
-        time_, energy = avatar_energy_time_map[avatar.avatar_name]
-        plt.plot(time_, energy, label=avatar.avatar_name)
+        if avatar.avatar_name in avatar_energy_time_map:  # 防止队伍角色能量满却一直未使用元素爆发
+            time_, energy = avatar_energy_time_map[avatar.avatar_name]
+            plt.plot(time_, energy, label=avatar.avatar_name)
     plt.legend()
     fig.canvas.draw()
     pil_energy = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
@@ -264,6 +281,7 @@ total_damage = 0
 assume_end_time = 0
 all_combat_text = open("%s\\%s\\%s分析.txt" % (file_path, file_name_without_ext, file_name_without_ext), "w", encoding="utf-8")
 combat_round = 1
+
 for line in sorted_data:
     ts, packet_name, data = line
     if packet_name == "SceneTeamUpdateNotify":
@@ -379,10 +397,6 @@ for line in sorted_data:
             if 'CombatInvocationsNotify' in union_data:
                 invoke = union_data['CombatInvocationsNotify']['invoke_list'][0]
                 if invoke["argument_type"] == 'COMBAT_TYPE_ARGUMENT_EVT_BEING_HIT':
-                    if not combat_start:
-                        combat_start = True
-                        combat_start_time = ts
-                        all_combat_text.write("战斗开始\n")
                     assume_end_time = ts
                     attack_result = invoke['combat_data']["attack_result"]
                     try:
@@ -394,6 +408,10 @@ for line in sorted_data:
                             attack_time_exactly = attack_time
                         attackee = attack_result['defense_id']
                         if str(attackee).startswith("33"):
+                            if not combat_start:
+                                combat_start = True
+                                combat_start_time = ts
+                                all_combat_text.write("战斗开始\n")
                             if str(attacker_entity_id).startswith("88"):
                                 attacker_entity_id = gadget_obj_dict[attacker_entity_id].owner_id
                             if str(attacker_entity_id).startswith("16"):
@@ -460,14 +478,20 @@ for line in sorted_data:
                         continue
                     element_reaction_type = element_reaction["element_reaction_type"]
                     if str(trigger_entity).startswith("16"):
-                        trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_entity]].avatar_name
+                        try:  # 防止上一队伍残留
+                            trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_entity]].avatar_name
+                        except KeyError:
+                            continue
                         if trigger_avatar not in avatar_trigger_reaction_times:
                             avatar_trigger_reaction_times[trigger_avatar] = 0
                         avatar_trigger_reaction_times[trigger_avatar] += 1
                     elif str(trigger_entity).startswith("88"):
                         trigger_avatar_id = gadget_obj_dict[trigger_entity].owner_id
                         if str(trigger_avatar_id).startswith("16"):
-                            trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_avatar_id]].avatar_name
+                            try:
+                                trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_entity]].avatar_name
+                            except KeyError:
+                                continue
                             if trigger_avatar not in avatar_trigger_reaction_times:
                                 avatar_trigger_reaction_times[trigger_avatar] = 0
                             if element_reaction_type not in [4, 5, 10, 11, 13, 14, 21, 22, 23, 24, 26, 32]:
@@ -515,12 +539,12 @@ for line in sorted_data:
                     if prop_name in avatar.fight_prop:
                         if avatar.fight_prop[prop_name] != value:
                             if value >= 5:
-                                all_combat_text.write("%.2fs %s的%s由%d变化为%d\n" % ((ts-combat_start_time)/1000, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
+                                all_combat_text.write("%.2fs %s的%s由%d变化为%d\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
                             else:
-                                all_combat_text.write("%.2fs %s的%s由%.2f变化为%.2f\n" % ((ts-combat_start_time)/1000, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
+                                all_combat_text.write("%.2fs %s的%s由%.2f变化为%.2f\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
                             avatar.fight_prop[prop_name] = value
                     else:
-                        all_combat_text.write("%.2fs %s的%s由0变化为%d\n" % ((ts-combat_start_time)/1000, avatar.avatar_name, prop_name, value))
+                        all_combat_text.write("%.2fs %s的%s由0变化为%d\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, value))
                         avatar.fight_prop[prop_name] = value
     elif packet_name == "PlayerPropNotify":
         for prop_map in data['prop_map']:
@@ -556,7 +580,6 @@ for line in sorted_data:
         combat_start = True
         combat_start_time = ts
         all_combat_text.write("战斗开始\n")
-
     # elif line.startswith("EvtDoSkillSuccNotify"):  # 先跳过
     #     new_line = line.replace("EvtDoSkillSuccNotify ", "")
     #     new_line = eval(new_line)
@@ -564,5 +587,5 @@ for line in sorted_data:
     #     avatar = avatar_obj_dict[avatar_entity_to_guid_map[new_line['caster_id']]]
     #     print("%s使用了%s" % (avatar.avatar_name, avatar.skill_map[skill]))
 all_combat_text.close()
-if combat_start:  # 中途退出未接收SceneTeamUpdateNotify使用
-    draw(assume_end_time - combat_start_time)
+# if combat_start:  # 中途退出未接收SceneTeamUpdateNotify使用
+#     draw(assume_end_time - combat_start_time)
