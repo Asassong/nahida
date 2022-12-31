@@ -401,11 +401,11 @@ if __name__ == '__main__':
     handled_kcp_packet = []
     kcp = {}
     dev = config["device_name"]
-    if dev == "NPF_{}":
+    if dev == "\\Device\\NPF_{}":
         with os.popen("getmac", "r") as c:
             text = c.read()
         iface = re.findall("(?<=_{).*?(?=})", text)[0]
-        dev = "NPF_{%s}" % iface
+        dev = "\\Device\\NPF_{%s}" % iface
         with open("config.json", "w", encoding="utf-8") as f:
             config["device_name"] = dev
             json.dump(config, f, indent=1)
