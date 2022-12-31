@@ -28,7 +28,7 @@ https://www.aliyundrive.com/s/H92QJFwjcHN  提取码: cx88
 
 自解压包，因此后缀为exe。
 
-可能需要安装npcap
+需要安装包中的Npcap.exe。
 
 ## 项目安全性
 
@@ -44,7 +44,7 @@ proto混淆，等待项目`Iridium-py`更新。
 
 ## 备注
 
-请在网络良好条件下使用。
+**请在网络良好条件下使用。**
 
 最近较忙，若使用出现问题希望直接提Pull request, 提issue当然也可以。
 
