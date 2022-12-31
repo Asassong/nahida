@@ -252,15 +252,14 @@ handled_without_kcp_packet = []
 handled_kcp_packet = []
 kcp = {}
 dev = config["device_name"]
-if dev == "NPF_{}":
+if dev == "\\Device\\NPF_{}":
     with os.popen("getmac", "r") as c:
         text = c.read()
     iface = re.findall("(?<=_{).*?(?=})", text)[0]
-    dev = "NPF_{%s}" % iface
+    dev = "\\Device\\NPF_{%s}" % iface
     with open("./nahida_config.json", "w", encoding="utf-8") as f:
         config["device_name"] = dev
         json.dump(config, f, indent=1)
-pkg_filter = "udp and port 22102 or port 22101"
 lock = threading.Lock()
 now_time = time.strftime("%m{}%d{}%H{}%M{}").format("月", "日", "时", "分")
 sniffer = threading.Thread(target=sniff_, args=(dev,))
