@@ -67,13 +67,6 @@ def get_packet_id(b_data):
     return packet_id
 
 
-def read_packet_id():
-    f = open("packet_id.json", "r")
-    d_packet_id = json.load(f)
-    f.close()
-    return d_packet_id
-
-
 def sniff_(iface_):
     sniff(iface=iface_, count=0, filter="udp port 22102||22101", prn=package_handle)
 
@@ -377,24 +370,20 @@ def read_windseed():
     return b_windseed
 
 
-def read_config():
-    f = open("config.json", "r")
-    return json.load(f)
-
-
-def read_union_cmd():
-    f = open("ucn_id.json", "r")
-    return json.load(f)
+def read_json(file):
+    with open(file, "r", encoding="utf-8") as f:
+        text = json.load(f)
+    return text
 
 
 if __name__ == '__main__':
     recv_pipe, send_pipe = Pipe(False)
     show = Process(target=show_damage, args=(recv_pipe,))
     show.start()
-    config = read_config()
+    config = read_json("config.json")
     windseed_text = read_windseed()
-    union_cmd = read_union_cmd()
-    d_pkt_id = read_packet_id()
+    union_cmd = read_json("./ucn_id.json")
+    d_pkt_id = read_json("./packet_id.json")
     sniff_datas = []
     packet = []
     handled_without_kcp_packet = []
