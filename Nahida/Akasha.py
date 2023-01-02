@@ -489,7 +489,7 @@ for line in sorted_data:
                         trigger_avatar_id = gadget_obj_dict[trigger_entity].owner_id
                         if str(trigger_avatar_id).startswith("16"):
                             try:
-                                trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_entity]].avatar_name
+                                trigger_avatar = avatar_obj_dict[avatar_entity_to_guid_map[trigger_avatar_id]].avatar_name
                             except KeyError:
                                 continue
                             if trigger_avatar not in avatar_trigger_reaction_times:
