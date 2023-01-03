@@ -1,5 +1,7 @@
 # nahida
 
+[中文](https://github.com/Asassong/nahida/blob/main/nahida/chs/Readme-chs.md)|[English](https://github.com/Asassong/nahida/blob/main/nahida/en/Readme-en.md)
+
 让智慧之神指引你吧。
 
 本项目基于项目`Iridium-py`开发，由两部分组成。
