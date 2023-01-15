@@ -231,6 +231,7 @@ def draw(combat_duration):
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(6, 6))
+
     damage_time_from_0, matching_time_damage = cal_dps(time_damage_dict)
     if lang == "chs":
         plt.title("DPS时序图")
@@ -329,7 +330,7 @@ combat_round = 1
 for line in sorted_data:
     ts, packet_name, data = line
     if packet_name == "SceneTeamUpdateNotify":
-        if combat_start:
+        if combat_start and assume_end_time:
             combat_end_time = assume_end_time
             draw(combat_end_time-combat_start_time)
             combat_round += 1
@@ -350,7 +351,11 @@ for line in sorted_data:
             avatar_damage_dict = {}
             time_damage_dict = {}
             stamina_time_dict = {}
+            gadget_obj_dict = {}
+            monster_obj_dict = {}
+            monster_name_list = []
             total_damage = 0
+            assume_end_time = 0
         combat_start = False
         for guid, avatar_obj in avatar_obj_dict.items():
             del avatar_obj
@@ -467,6 +472,7 @@ for line in sorted_data:
                         elif attack_time < attack_time_exactly:
                             attack_time_exactly = attack_time
                         attackee = attack_result['defense_id']
+                        attacker_avatar = None
                         if str(attackee).startswith("33"):
                             if not combat_start:
                                 combat_start = True
@@ -479,20 +485,24 @@ for line in sorted_data:
                                 attacker_entity_id = gadget_obj_dict[attacker_entity_id].owner_id
                             if str(attacker_entity_id).startswith("16"):
                                 attacker = avatar_obj_dict[avatar_entity_to_guid_map[attacker_entity_id]].avatar_name
+                                attacker_avatar = attacker
+                            elif str(attacker_entity_id).startswith("33"):
+                                attacker = monster_obj_dict[attackee].monster_name
                             else:
                                 continue
                             attackee_name = monster_obj_dict[attackee].monster_name
                             if "damage" in attack_result:
                                 damage = attack_result["damage"]
-                                if attacker not in avatar_hit_times:
-                                    avatar_hit_times[attacker] = 0
-                                avatar_hit_times[attacker] += 1
+                                if attacker_avatar is not None:
+                                    if attacker_avatar not in avatar_hit_times:
+                                        avatar_hit_times[attacker_avatar] = 0
+                                    if attacker_avatar not in avatar_damage_dict:
+                                        avatar_damage_dict[attacker_avatar] = 0
+                                    avatar_damage_dict[attacker_avatar] += damage
+                                    avatar_hit_times[attacker_avatar] += 1
                                 apply_element = False
                                 crit = False
                                 total_damage += damage
-                                if attacker not in avatar_damage_dict:
-                                    avatar_damage_dict[attacker] = 0
-                                avatar_damage_dict[attacker] += damage
                                 if attack_time in time_damage_dict:
                                     time_damage_dict[attack_time] += damage
                                 else:
@@ -501,9 +511,10 @@ for line in sorted_data:
                                     apply_element = True
                                 if "is_crit" in attack_result:
                                     crit = True
-                                    if attacker not in avatar_crit_times:
-                                        avatar_crit_times[attacker] = 0
-                                    avatar_crit_times[attacker] += 1
+                                    if attacker_avatar is not None:
+                                        if attacker_avatar not in avatar_crit_times:
+                                            avatar_crit_times[attacker_avatar] = 0
+                                        avatar_crit_times[attacker_avatar] += 1
                                 if "element_type" in attack_result:
                                     element_type = element_id_dict[attack_result["element_type"]]
                                     if lang == "chs":
@@ -582,6 +593,8 @@ for line in sorted_data:
                             trigger_avatar = monster_obj_dict[trigger_on].monster_name
                         else:
                             continue
+                    elif str(trigger_entity).startswith("33"):
+                        trigger_avatar = monster_obj_dict[trigger_entity].monster_name
                     else:
                         continue
                     if element_reaction_type in element_reaction_id_dict:
@@ -639,26 +652,18 @@ for line in sorted_data:
                         avatar_energy_time_dict[avatar.avatar_name].update({ts: value})
                     if prop_name in avatar.fight_prop:
                         if avatar.fight_prop[prop_name] != value:
-                            if value >= 5:
-                                if lang == "chs":
-                                    all_combat_text.write("%.2fs %s的%s由%d变化为%d\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
-                                elif lang == "en":
-                                    all_combat_text.write("%.2fs %s's %s change from %d to %d\n" % (
-                                    (ts - combat_start_time) / 1000 if combat_start_time else 0, avatar.avatar_name,
-                                    prop_name, avatar.fight_prop[prop_name], value))
-                            else:
-                                if lang == "chs":
-                                    all_combat_text.write("%.2fs %s的%s由%.2f变化为%.2f\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
-                                elif lang == "en":
-                                    all_combat_text.write("%.2fs %s's %s change from %.2f to %.2f\n" % (
-                                    (ts - combat_start_time) / 1000 if combat_start_time else 0, avatar.avatar_name,
-                                    prop_name, avatar.fight_prop[prop_name], value))
+                            if lang == "chs":
+                                all_combat_text.write("%.2fs %s的%s由%.3f变化为%.3f\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, avatar.fight_prop[prop_name], value))
+                            elif lang == "en":
+                                all_combat_text.write("%.2fs %s's %s change from %.3f to %.3f\n" % (
+                                (ts - combat_start_time) / 1000 if combat_start_time else 0, avatar.avatar_name,
+                                prop_name, avatar.fight_prop[prop_name], value))
                             avatar.fight_prop[prop_name] = value
                     else:
                         if lang == "chs":
-                            all_combat_text.write("%.2fs %s的%s由0变化为%d\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, value))
+                            all_combat_text.write("%.2fs %s的%s由0变化为%.3f\n" % ((ts-combat_start_time)/1000 if combat_start_time else 0, avatar.avatar_name, prop_name, value))
                         elif lang == "en":
-                            all_combat_text.write("%.2fs %s's %s change from 0 to %d\n" % (
+                            all_combat_text.write("%.2fs %s's %s change from 0 to %.3f\n" % (
                             (ts - combat_start_time) / 1000 if combat_start_time else 0, avatar.avatar_name, prop_name,
                             value))
                         avatar.fight_prop[prop_name] = value
